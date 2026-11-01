@@ -1,11 +1,17 @@
-# 将 mammothchat.site 替换为实际域名；先按服务器实际证书位置修改 HTTPS 配置。
 server {
     listen 80;
-    server_name mammothchat.site;
-    root /var/www/physics;
+    server_name mammothchat.site www.mammothchat.site;
+    root /var/www/mammoth-physics/public;
     index index.html;
     include mime.types;
     types { application/javascript mjs; }
+    location /api/ {
+        proxy_pass http://127.0.0.1:3210/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 35s;
+    }
     location / { try_files $uri $uri/ =404; }
-    # 配置有效 HTTPS 证书后，可在此添加 HTTP 到 HTTPS 跳转。
 }

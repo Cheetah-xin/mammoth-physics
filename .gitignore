@@ -4,3 +4,7 @@ preview.png
 focus-preview.png
 learning-preview.png
 public-preview.png
+
+.env
+.env.*
+!.env.example
