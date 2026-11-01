@@ -1,0 +1,11 @@
+main:
+  "crontab: */10 * * * *":
+    - name: sync-from-github
+      stages:
+        - name: pull-main
+          image: tencentcom/git-sync
+          settings:
+            target_url: https://github.com/Cheetah-xin/mammoth-physics.git
+            auth_type: https
+            branch: main
+            sync_mode: pull
