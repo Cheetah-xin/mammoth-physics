@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """Static site and a small, allow-listed DeepSeek chat proxy."""
 import json
@@ -9,11 +10,27 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent / "public"
+
+def load_local_env():
+    env_file = ROOT.parent / ".env"
+    if not env_file.is_file():
+        return
+    for raw in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        name = name.strip()
+        value = value.strip().strip("\"'")
+        if name and value and not os.environ.get(name):
+            os.environ[name] = value
+
+load_local_env()
 PORT = int(os.environ.get("PORT", "3210"))
 API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
 RATE = {}
-SYSTEM = """你是“异想物理”的中学力学探索导师。用自然、简洁的中文带学生从具体生活情景理解系统、边界、相互作用、状态和变化。强调“研究对象”：每轮都联系当前集合 S={人,箱子,墙} 中实际选中的成员，解释边界内外作用；若集合为空，提示先点选关注对象。不要强行拼接学科，但在问题自然涉及数量、流动、物质或生命时，可借助数学、化学、生物的思维方式。先接住学生的话，再给一条简短解释，最后提出一个能由当前模拟检验的追问。不要堆公式，不要考试腔，不把猜测说成模拟结果。\n只输出 JSON：{\"reply\":\"面向学生的简短回应\",\"action\":null 或 {\"type\":\"walk\"} 或 {\"type\":\"throw\",\"direction\":\"left\"|\"right\"}}。只有当学生明确要求走路/迈步，或明确要求抛出箱子并指定方向时，才给对应动作；含糊方向时先追问并令 action=null。绝不编造其他 action，不要在 reply 中声称尚未发生的运动。把动作交给本地模拟执行。"""
+SYSTEM = """你是“异想物理”的中学力学探索导师。用自然、简洁的中文带学生从具体生活情景理解系统、边界、相互作用、状态和变化。强调“研究对象”：每轮都联系当前集合 S={人,箱子,墙} 中实际选中的成员，解释边界内外作用；若集合为空，提示先点选关注对象。不要强行拼接学科，但在问题自然涉及数量、流动、物质或生命时，可借助数学、化学、生物的思维方式。先接住学生的话，再给一条简短解释，最后提出一个能由当前模拟检验的追问。不要堆公式，不要考试腔，不把猜测说成模拟结果。\n只输出 JSON：{\"reply\":\"面向学生的简短回应\",\"action\":null 或 {\"type\":\"walk\"} 或 {\"type\":\"throw\",\"direction\":\"left\"|\"right\"}}。研究对象集合只决定观察和解释范围，不限制学生执行动作：箱子即使不在 S 中，也可以作为边界外物体被抛出。只要学生明确说“抛箱子/抛出箱子”并指定方向，就返回对应 throw 动作，不要先追问是否把箱子加入 S；在讲解中说明箱子在边界内还是外。只有动作方向不明确时才追问并令 action=null。学生明确要求走路/迈步时返回 walk。本关的方向规则必须准确：向左抛箱子时，箱子向左、人受到向右的冲量并向右运动；人对箱子的力向左，箱子对人的反作用力向右。向右抛时方向相反。不得把人对箱子的作用力方向和箱子对人的作用力方向混淆。绝不编造其他 action，不要在 reply 中声称尚未发生的运动。把动作交给本地模拟执行。"""
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
