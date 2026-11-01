@@ -1,0 +1,11 @@
+# 将 mammothchat.site 替换为实际域名；先按服务器实际证书位置修改 HTTPS 配置。
+server {
+    listen 80;
+    server_name mammothchat.site;
+    root /var/www/physics;
+    index index.html;
+    include mime.types;
+    types { application/javascript mjs; }
+    location / { try_files $uri $uri/ =404; }
+    # 配置有效 HTTPS 证书后，可在此添加 HTTP 到 HTTPS 跳转。
+}
